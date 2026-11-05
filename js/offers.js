@@ -3,9 +3,9 @@
 // Rival front offices sometimes call you: in the weeks before the trade deadline, and when you're on the
 // clock in the draft. Offers are built with the same valuation as the TRADE tab, so a team only offers
 // what it would actually accept. The package can be picks, players, or a mix.
-const OFFER_MAX_PER_SEASON = 3;
-const OFFER_WEEK_CHANCE = (w) => w < 3 ? 0 : 0.1 + (w - 3) * 0.035; // ramps up toward the deadline
-const OFFER_DRAFT_CHANCE = 0.35;
+const OFFER_MAX_PER_SEASON = 2;
+const OFFER_WEEK_CHANCE = (w) => w < 3 ? 0 : 0.08 + (w - 3) * 0.025; // rarer, ramps up toward the deadline
+const OFFER_DRAFT_CHANCE = 0.25;
 const OFFER_KINDS = ['picks', 'players', 'mix'];
 
 function offerId(L) { L.offerSeq = (L.offerSeq || 0) + 1; return L.offerSeq; }
@@ -117,7 +117,8 @@ function maybeDeadlineOffer(L) {
   if (!R.chance(OFFER_WEEK_CHANCE(L.week))) return;
   const o = makeOffer(L, { type: 'deadline' });
   if (!o) return;
-  o.exp = Math.min(TRADE_DEADLINE_WEEK, L.week + 1); // open for this week and next, never past the deadline
+  // usually open this week and next; about a third of offers sit for 3-4 weeks. Never past the deadline.
+  o.exp = Math.min(TRADE_DEADLINE_WEEK, L.week + (R.chance(0.35) ? R.int(2, 3) : 1));
   L.offerCount[L.year] = (L.offerCount[L.year] || 0) + 1;
   addOffer(L, o);
 }

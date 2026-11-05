@@ -48,7 +48,12 @@ function teamRatings(L, team) {
   return { off: Math.round(off), def: Math.round(def), ovr: Math.round(off * 0.55 + def * 0.45) };
 }
 
+// Morale shifts every rating a little for the length of the game.
 function simGame(L, homeId, awayId, opts) {
+  const restore = typeof applyMoraleShift === 'function' ? applyMoraleShift(L, [homeId, awayId]) : null;
+  try { return simGameCore(L, homeId, awayId, opts); } finally { if (restore) restore(); }
+}
+function simGameCore(L, homeId, awayId, opts) {
   opts = opts || {};
   const teams = [L.teams[homeId], L.teams[awayId]];
   const lu = [buildLineup(L, teams[0]), buildLineup(L, teams[1])];

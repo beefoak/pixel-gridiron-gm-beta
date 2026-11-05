@@ -32,7 +32,7 @@ const cell = (s, c) => typeof c[1] === 'function' ? c[1](s) : st(s, c[1]);
 function render() {
   const app = $('#app');
   if (!G) { app.innerHTML = renderStart(); return; }
-  app.innerHTML = renderHeader() + renderNav() + `<main id="main">${renderTab()}</main><footer class="foot">PIXEL GRIDIRON GM · fictional league, not affiliated with any pro league · autosaves in this browser</footer>`;
+  app.innerHTML = renderHeader() + renderNav() + `<main id="main">${renderTab()}</main><footer class="foot">BITIRON · fictional league, not affiliated with any pro league · autosaves in this browser</footer>`;
   if (UI.tab === 'home') drawBanner();
   if (UI.tab === 'help') filterHelp();
 }
@@ -60,7 +60,7 @@ function setStartName(i, field, raw) {
 }
 function renderStart() {
   const saved = hasSave();
-  let h = `<div class="start"><div class="logo px">PIXEL<br><span>GRIDIRON</span> GM</div>
+  let h = `<div class="start"><div class="logo px">BIT<span>IRON</span></div>
   <p class="tag">Run a pro football franchise. Draft, develop, survive injuries, chase the title.</p><div class="center"><button class="btn alt" data-act="helpOpen">? HOW TO PLAY</button> <button class="btn alt" data-act="feedback">✉ FEEDBACK</button></div>`;
   if (saved) h += `<div class="center"><button class="btn big" data-act="continue">&gt; CONTINUE SAVED GAME</button></div>`;
   h += `<h2 class="px">${UI.editNames ? 'NAME YOUR LEAGUE' : saved ? 'OR START A NEW FRANCHISE' : 'CHOOSE YOUR TEAM'}</h2>
@@ -110,7 +110,7 @@ function phaseButtons() {
 function renderHeader() {
   const u = TM(G.userTeam);
   return `<header class="top" style="--c1:${u.c1};--c2:${u.c2}">
-    <div class="brand px">PIXEL GRIDIRON GM <span class="beta-tag">β BETA</span></div>
+    <div class="brand px">BITIRON <span class="beta-tag">β BETA</span></div>
     <div class="me">${helm(u.id, 44)}<div><div class="px tname">${esc(u.city)} ${esc(u.name)}</div><div class="sub">${recStr(u.rec)} · ${phaseLabel()} · ${capChip()}${G.ops ? ` · <a class="plink fan-chip ${fanMood(G.ops.fans)[1]}" data-act="tab" data-tab="ops">FANS ${Math.round(G.ops.fans)}</a>` : ''}</div></div></div>
     <div class="actions">${phaseButtons()}</div>
     <div class="menu"><label class="chk"><input type="checkbox" data-change="watch" ${UI.watch ? 'checked' : ''}> Watch my games</label>
@@ -140,7 +140,7 @@ function vHome() {
   h += panel('FRANCHISE', `<div class="franchise">${helm(u.id, 72)}<div><div class="px big-name">${esc(u.city)}<br>${esc(u.name)}</div>
     <div class="sub">${recStr(u.rec)} · ${ordinal(rk)} in ${u.conf} ${u.div} · PF ${u.rec.pf} PA ${u.rec.pa}${u.rec.strk ? ` · Streak ${u.rec.strk > 0 ? 'W' + u.rec.strk : 'L' + -u.rec.strk}` : ''}</div></div></div>
     ${bar('OFFENSE', r.off)}${bar('DEFENSE', r.def)}${bar('OVERALL', r.ovr)}
-    <div class="sub">Active roster: ${activeRoster(G, u).length}/${ROSTER_LIMIT} · IR: ${u.roster.filter(id => G.players[id].ir).length}</div>${rosterWarnings(u)}`);
+    <div class="sub">Team morale: ${moraleChip({ morale: teamMorale(G, u.id) }, true)}</div><div class="sub">Active roster: ${activeRoster(G, u).length}/${ROSTER_LIMIT} · IR: ${u.roster.filter(id => G.players[id].ir).length}</div>${rosterWarnings(u)}`);
   h += panel(G.phase === 'regular' ? 'THIS WEEK' : 'LATEST', homeGameCard());
   h += `</div><div class="grid3">`;
   h += panel(`${u.conf.toUpperCase()} ${u.div.toUpperCase()}`, miniDiv(u.conf, u.div));
@@ -214,17 +214,17 @@ function rosterTable(tid, mine) {
   let ps = t.roster.map(id => G.players[id]);
   if (UI.rPos !== 'ALL') ps = ps.filter(p => p.pos === UI.rPos);
   const k = UI.rSort, d = UI.rDir;
-  const val = (p) => k === 'name' ? p.ln : k === 'pos' ? POSITIONS.indexOf(p.pos) * 100 - p.ovr : k === 'num' ? p.num : k === 'stat' ? 0 : p[k];
+  const val = (p) => k === 'name' ? p.ln : k === 'pos' ? POSITIONS.indexOf(p.pos) * 100 - p.ovr : k === 'num' ? p.num : k === 'stat' ? 0 : k === 'morale' ? mor(p) : p[k];
   ps.sort((a, b) => { const x = val(a), y = val(b); return (x < y ? -1 : x > y ? 1 : 0) * d; });
   const th = (key, label) => `<th class="sort ${k === key ? 'on' : ''}" data-act="rsort" data-k="${key}">${label}</th>`;
   const act = activeRoster(G, t).length;
   let h = `<div class="bar-row"><div class="px small">${esc(t.city)} ${esc(t.name)} · ACTIVE ${act}/${ROSTER_LIMIT} · IR ${t.roster.length - act}</div>${mine ? `<button class="btn tiny alt" data-act="staffCuts">STAFF CUT REVIEW</button><button class="btn tiny alt" data-act="autoCut">AUTO-CUT TO 53</button><button class="btn tiny alt" data-act="autoFill">AUTO-FILL ROSTER</button>` : ''}</div>`;
   h += posFilter(UI.rPos, 'rpos');
-  h += `<div class="scroll"><table class="tbl roster"><tr>${th('num', '#')}${th('name', 'NAME')}${th('pos', 'POS')}${th('age', 'AGE')}${th('ovr', 'OVR')}${th('pot', 'POT')}${th('exp', 'EXP')}<th>HT/WT</th><th>CONTRACT</th><th>STATUS</th><th>${isOffseason() ? 'LAST SEASON' : 'SEASON'}</th>${mine ? '<th></th>' : ''}</tr>`;
+  h += `<div class="scroll"><table class="tbl roster"><tr>${th('num', '#')}${th('name', 'NAME')}${th('pos', 'POS')}${th('age', 'AGE')}${th('ovr', 'OVR')}${th('pot', 'POT')}${th('exp', 'EXP')}${th('morale', 'MORALE')}<th>HT/WT</th><th>CONTRACT</th><th>STATUS</th><th>${isOffseason() ? 'LAST SEASON' : 'SEASON'}</th>${mine ? '<th></th>' : ''}</tr>`;
   for (const p of ps) {
     const last = p.career[p.career.length - 1];
     const line = (isOffseason()) ? (last && last.year === G.year - 1 ? statLine(p, last) : p.exp === 0 ? 'Rookie' : '-') : (p.stats.gp ? statLine(p) : '-');
-    h += `<tr><td class="dim">${p.num}</td><td>${pLink(p)}${p.exp === 0 ? ' <span class="rk">R</span>' : ''}</td><td>${p.pos}</td><td>${p.age}</td><td>${ovrB(p.ovr)}</td><td>${potB(p.pot, p.gen)}</td><td>${p.exp}</td><td class="dim">${htStr(p.ht)} ${p.wt}</td><td>${salCell(p)}</td><td>${statusTag(p)}</td><td class="small">${esc(line)}</td>${mine ? `<td>${negButton(p)}<button class="btn tiny danger" data-act="cut" data-id="${p.id}">CUT</button></td>` : ''}</tr>`;
+    h += `<tr><td class="dim">${p.num}</td><td>${pLink(p)}${p.exp === 0 ? ' <span class="rk">R</span>' : ''}</td><td>${p.pos}</td><td>${p.age}</td><td>${ovrB(p.ovr)}</td><td>${potB(p.pot, p.gen)}</td><td>${p.exp}</td><td>${moraleChip(p)}</td><td class="dim">${htStr(p.ht)} ${p.wt}</td><td>${salCell(p)}</td><td>${statusTag(p)}</td><td class="small">${esc(line)}</td>${mine ? `<td>${negButton(p)}<button class="btn tiny danger" data-act="cut" data-id="${p.id}">CUT</button></td>` : ''}</tr>`;
   }
   return h + `</table></div>`;
 }
@@ -465,8 +465,9 @@ function playerModal(pid) {
     <div class="pinfo"><div class="px pname">#${p.num} ${esc(fullName(p))}</div>
       <div>${p.pos} · ${t ? teamLink(t.id, true) : prospect ? 'Draft Prospect' : 'Free Agent'}</div>
       <div class="dim">Age ${p.age} · ${htStr(p.ht)} ${p.wt} lbs · ${esc(p.college)} · Exp ${p.exp} yr · Drafted: ${dr}</div>${p.contract && !prospect ? `<div>Contract: <b>${esc(contractStr(G, p))}</b> · market ${fmtM(marketSalary(G, p))}</div>` : p.tid === -1 ? `<div>Free agent · asking ${fmtM(askingContract(G, p, 'fa').sal)}/yr</div>` : ''}
-      <div class="ratings"><div>OVR ${prospect ? ovrB(p.sOvr) + ` <span class="dim small">${SCOUT_SPREAD[p.sc || 0] ? '±' + Math.ceil(SCOUT_SPREAD[p.sc || 0]) : 'exact'} · ${SCOUT_LABELS[p.sc || 0]}</span>` : ovrB(p.ovr)}</div><div>POTENTIAL ${prospect && !p.sc && !p.gen ? '<span class="pot">?</span>' : potB(prospect ? p.sPot : p.pot, p.gen)}</div><div>${statusTag(p)}</div></div>
+      <div class="ratings"><div>OVR ${prospect ? ovrB(p.sOvr) + ` <span class="dim small">${SCOUT_SPREAD[p.sc || 0] ? '±' + Math.ceil(SCOUT_SPREAD[p.sc || 0]) : 'exact'} · ${SCOUT_LABELS[p.sc || 0]}</span>` : ovrB(p.ovr)}</div><div>POTENTIAL ${prospect && !p.sc && !p.gen ? '<span class="pot">?</span>' : potB(prospect ? p.sPot : p.pot, p.gen)}</div><div>${statusTag(p)}</div>${p.tid >= 0 ? `<div title="${esc(moraleWhy(p))}">MORALE ${moraleChip(p, true)}</div>` : ''}</div>
       ${p.awards.length ? `<div class="gold small">★ ${esc(summarizeAwards(p.awards))}</div>` : ''}
+      ${p.tid === G.userTeam && (p.morLog || []).length ? `<div class="small dim">Morale: ${esc(p.morLog.slice(0, 3).map(e => `${e.d > 0 ? '+' : ''}${e.d} ${e.why}`).join(' · '))}</div>` : ''}
       <div class="pact">${p.tid === G.userTeam && !G.draft ? `<button class="btn tiny danger" data-act="cut" data-id="${p.id}">RELEASE</button>` : ''}${negButton(p)}<button class="btn tiny alt" data-act="editPlayer" data-id="${p.id}">EDIT PLAYER</button></div>
     </div></div>`;
   if (p.traits && p.traits.length) {

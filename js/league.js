@@ -156,6 +156,7 @@ function injurePlayer(L, p, inj, illness) {
   const weeks = R.int(inj[2], inj[3]);
   p.injury = { name: inj[0], weeks, fresh: !illness, ill: !!illness };
   p.injHist.push({ y: L.year, w: L.week, name: inj[0], weeks });
+  if (typeof moraleInjury === 'function') moraleInjury(L, p, weeks, illness);
   if (inj[4]) for (const k in inj[4]) { const [a, b] = inj[4][k]; p.attrs[k] = clamp(p.attrs[k] - R.int(a, b), 15, 99); }
   if (inj[4]) { p.ovr = calcOvr(p); }
   if (weeks >= 4 && p.tid >= 0) p.ir = true;
@@ -246,6 +247,7 @@ function playGame(L, g, playoff) {
   if (!playoff) { updateRecords(L, g); checkGameRecords(L, res, g); }
   postGameInjuries(L, res);
   if (typeof opsAfterGame === 'function') opsAfterGame(L, g, playoff);
+  if (typeof moraleAfterGame === 'function') moraleAfterGame(L, g, playoff);
   return res;
 }
 
@@ -256,6 +258,7 @@ function simWeek(L) {
   for (const g of L.schedule) if (g.week === L.week && !g.played) playGame(L, g, false);
   weeklyHealth(L);
   weeklyTraining(L);
+  if (typeof moraleWeek === 'function') moraleWeek(L);
   L.week++;
   if (typeof maybeDeadlineOffer === 'function') maybeDeadlineOffer(L);
   if (typeof opsWeek === 'function') opsWeek(L);
@@ -397,6 +400,7 @@ function simPlayoffRound(L) {
   }
   weeklyHealth(L);
   if (typeof opsWeek === 'function') opsWeek(L);
+  if (typeof moraleWeek === 'function') moraleWeek(L);
   if (r === 3) {
     const g = P.games.find(x => x.round === 3);
     P.champion = g.winner; P.elim[g.winner] = 4;
@@ -446,6 +450,7 @@ function runOffseason(L) {
   const season = L.year;
   L.hofAuto = autoHofVotes(L); // you skipped the vote: the selection committee inducts the clear cases
   if (typeof opsSeasonEnd === 'function') { opsSeasonEnd(L); maybeOpsEvent(L, 0.35); }
+  if (typeof moraleOffseason === 'function') moraleOffseason(L);
   for (const t of L.teams) {
     t.history.push({ year: season, w: t.rec.w, l: t.rec.l, t: t.rec.t, pf: t.rec.pf, pa: t.rec.pa, seed: L.playoffs ? seedOf(L, t.id) : 0, result: playoffResult(L, t.id), ts: teamSeasonStats(L, t.id).v });
     t.prevWins = t.rec.w;

@@ -315,8 +315,11 @@ function moveAsset(L, key, from, to) {
 }
 function executeTrade(L, aiTid, userKeys, aiKeys) {
   const u = L.userTeam;
+  const pl = (keys, tid) => keys.filter(k => k[0] === 'p').map(k => L.players[+k.slice(1)]).filter(p => p && p.tid === tid);
+  const movedU = pl(userKeys, u), movedA = pl(aiKeys, aiTid);
   const gave = userKeys.map(k => moveAsset(L, k, u, aiTid)).filter(Boolean);
   const got = aiKeys.map(k => moveAsset(L, k, aiTid, u)).filter(Boolean);
+  if (typeof moraleTrade === 'function') moraleTrade(L, u, aiTid, movedU, movedA);
   L.trades = L.trades || [];
   L.trades.unshift({ y: L.year, w: L.phase === 'regular' ? L.week : 0, phase: L.phase, a: u, b: aiTid, aGave: gave, bGave: got });
   story(L, 'TRADE', `${L.teams[u].abbr} and ${L.teams[aiTid].abbr} make a deal`, `${L.teams[u].city} sends ${gave.join(', ') || 'nothing'} to ${L.teams[aiTid].city} in exchange for ${got.join(', ') || 'nothing'}.`, [u, aiTid]);

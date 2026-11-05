@@ -291,8 +291,8 @@ const OPS_EVENTS = [
   { id: 'hospital', kind: 'org', w: () => 0.7, title: "Children's hospital fundraiser",
     text: () => "The local children's hospital asked the team to host a fundraiser at the stadium.",
     choices: [
-      { label: 'Host it and match donations', fx: { cash: -1, fans: 5 } },
-      { label: 'Send a few players to visit', fx: { fans: 2 } },
+      { label: 'Host it and match donations', fx: { cash: -1, fans: 5, morTeam: 2 } },
+      { label: 'Send a few players to visit', fx: { fans: 2, morTeam: 1 } },
       { label: 'Decline politely', fx: { fans: -3 } },
     ] },
   { id: 'sponsor', kind: 'org', w: () => 0.6, title: 'Sponsorship offer',
@@ -322,7 +322,7 @@ const OPS_EVENTS = [
     choices: [
       { label: 'Embrace it', fx: { fans: 3 }, risk: [0.3, { cash: -0.5 }, 'The league fined the team for unsportsmanlike conduct.'] },
       { label: 'Apologize', fx: { fans: -1 } },
-      { label: 'Fire the mascot', fx: { fans: -4 } },
+      { label: 'Fire the mascot', fx: { fans: -4, morTeam: -1 } },
     ] },
   { id: 'grant', kind: 'org', w: (L) => FACILITIES.some(f => L.ops.stadium[f[0]].cond < 60) ? 0.6 : 0, title: 'City renovation grant',
     text: (L, c) => `The city will cover half of a renovation of the ${FAC[c.fac].name.toLowerCase()} if the team pays the other half (${fmtM(c.cost)}).`,
@@ -337,49 +337,49 @@ const OPS_EVENTS = [
     text: (L, c) => `${c.name} was arrested overnight on a DUI charge. Cameras were there.`,
     setup: (L) => playerForEvent(L, false),
     choices: [
-      { label: 'Suspend him 2 games', fx: { fans: 2, pop: -10, susp: 2 } },
-      { label: 'Stand by him', fx: { fans: -6, pop: -5 } },
-      { label: 'Release him', fx: { fans: 3, release: true } },
+      { label: 'Suspend him 2 games', fx: { fans: 2, pop: -10, susp: 2, mor: -12 } },
+      { label: 'Stand by him', fx: { fans: -6, pop: -5, mor: 8 } },
+      { label: 'Release him', fx: { fans: 3, release: true, morTeam: -2 } },
     ] },
   { id: 'fight', kind: 'player', w: () => 0.7, title: 'Nightclub fight',
     text: (L, c) => `${c.name} was involved in a fight at a nightclub. No charges yet, but there is video.`,
     setup: (L) => playerForEvent(L, false),
     choices: [
-      { label: 'Suspend him 1 game', fx: { fans: 1, pop: -6, susp: 1 } },
-      { label: 'Fine him and move on', fx: { cash: 0.1, pop: -4 } },
-      { label: 'No comment', fx: { fans: -4, pop: -2 } },
+      { label: 'Suspend him 1 game', fx: { fans: 1, pop: -6, susp: 1, mor: -8 } },
+      { label: 'Fine him and move on', fx: { cash: 0.1, pop: -4, mor: -5 } },
+      { label: 'No comment', fx: { fans: -4, pop: -2, mor: 3 } },
     ] },
   { id: 'callout', kind: 'player', w: (L) => L.teams[L.userTeam].rec.strk <= -2 ? 1.2 : 0.2, title: 'Player blasts the fans',
     text: (L, c) => `After the loss, ${c.name} said the home crowd "sounds like a library" and that fans "don't deserve this team."`,
     setup: (L) => playerForEvent(L, true),
     choices: [
-      { label: 'Make him apologize publicly', fx: { fans: 1, pop: -3 } },
-      { label: 'Fine him', fx: { fans: 2, pop: -6, cash: 0.05 } },
-      { label: 'Back your player', fx: { fans: -5, pop: 4 } },
+      { label: 'Make him apologize publicly', fx: { fans: 1, pop: -3, mor: -6 } },
+      { label: 'Fine him', fx: { fans: 2, pop: -6, cash: 0.05, mor: -8, morTeam: 1 } },
+      { label: 'Back your player', fx: { fans: -5, pop: 4, mor: 8, morTeam: -2 } },
     ] },
   { id: 'charity', kind: 'player', w: () => 0.8, title: 'Player charity foundation',
     text: (L, c) => `${c.name} is launching a foundation for local schools and asked if the team will help.`,
     setup: (L) => playerForEvent(L, true),
     choices: [
-      { label: 'Match his donation', fx: { cash: -0.5, fans: 3, pop: 10 } },
-      { label: 'Promote it on team channels', fx: { fans: 1, pop: 5 } },
-      { label: 'Stay out of it', fx: { pop: -2 } },
+      { label: 'Match his donation', fx: { cash: -0.5, fans: 3, pop: 10, mor: 10, morTeam: 1 } },
+      { label: 'Promote it on team channels', fx: { fans: 1, pop: 5, mor: 5 } },
+      { label: 'Stay out of it', fx: { pop: -2, mor: -6 } },
     ] },
   { id: 'number', kind: 'player', w: () => 0.5, title: 'Jersey number change',
     text: (L, c) => `${c.name} wants to switch jersey numbers. Every jersey with his old number in stock would have to be cleared out.`,
     setup: (L) => playerForEvent(L, true),
     choices: [
-      { label: 'Approve the change', fxFn: (L, c) => ({ cash: -((L.ops.jersey.stock[c.pid] || 0) * JERSEY_COST / 1e6), pop: 4, clearStock: true, renumber: true }) },
-      { label: 'Approve it after this season', fx: { pop: 1 } },
-      { label: 'Deny it', fx: { pop: -3 } },
+      { label: 'Approve the change', fxFn: (L, c) => ({ cash: -((L.ops.jersey.stock[c.pid] || 0) * JERSEY_COST / 1e6), pop: 4, mor: 6, clearStock: true, renumber: true }) },
+      { label: 'Approve it after this season', fx: { pop: 1, mor: 1 } },
+      { label: 'Deny it', fx: { pop: -3, mor: -8 } },
     ] },
   { id: 'autographs', kind: 'player', w: () => 0.6, title: 'Fan favorite moment',
     text: (L, c) => `${c.name} stayed two hours after practice signing autographs for every kid in line. It's all over social media.`,
     setup: (L) => playerForEvent(L, true),
     choices: [
-      { label: 'Build a marketing campaign around him', fx: { cash: -0.2, fans: 2, pop: 9 } },
-      { label: 'Thank him publicly', fx: { fans: 1, pop: 4 } },
-      { label: 'Nothing', fx: {} },
+      { label: 'Build a marketing campaign around him', fx: { cash: -0.2, fans: 2, pop: 9, mor: 6 } },
+      { label: 'Thank him publicly', fx: { fans: 1, pop: 4, mor: 3 } },
+      { label: 'Nothing', fx: { mor: -2 } },
     ] },
 ];
 function playerForEvent(L, famous) {
@@ -407,6 +407,8 @@ function fxSummary(L, fx, ev) {
   if (fx.fans) out.push(`fans ${fx.fans > 0 ? '+' : ''}${fx.fans}`);
   if (fx.cond) for (const k in fx.cond) out.push(`${FAC[k].name.toLowerCase()} ${fx.cond[k] > 0 ? '+' : ''}${fx.cond[k]}`);
   if (fx.pop) out.push(`popularity ${fx.pop > 0 ? '+' : ''}${fx.pop}`);
+  if (fx.mor) out.push(`his morale ${fx.mor > 0 ? '+' : ''}${fx.mor}`);
+  if (fx.morTeam) out.push(`team morale ${fx.morTeam > 0 ? '+' : ''}${fx.morTeam}`);
   if (fx.susp) out.push(`suspended ${fx.susp} game${fx.susp > 1 ? 's' : ''}`);
   if (fx.release) out.push('released');
   if (fx.price) out.push('ticket price -10%');
@@ -419,9 +421,11 @@ function applyFx(L, fx, ev, why) {
   if (fx.fans) fanChange(L, fx.fans, why);
   if (fx.cond) for (const k in fx.cond) O.stadium[k].cond = clamp(O.stadium[k].cond + fx.cond[k], 0, 100);
   if (fx.price) for (const k in fx.price) opsSetPrice(L, k, O.prices[k] * fx.price[k]);
+  if (fx.morTeam && typeof bumpTeamMorale === 'function') bumpTeamMorale(L, L.userTeam, fx.morTeam, why, p ? p.id : undefined);
   if (fx.grant) { const f = O.stadium[ev.ctx.fac]; opsSpend(L, ev.ctx.cost, 'upgrades'); f.lvl = Math.min(5, f.lvl + 1); f.cond = 100; }
   if (p) {
     if (fx.pop) p.popAdj = (p.popAdj || 0) + fx.pop;
+    if (fx.mor && typeof bumpMorale === 'function') bumpMorale(L, p, fx.mor, why);
     if (fx.susp && p.tid === L.userTeam) { p.injury = { name: 'Suspension', weeks: fx.susp, fresh: false, ill: true, susp: true }; news(L, `${L.teams[p.tid].abbr} ${p.pos} ${fullName(p)} suspended ${fx.susp} game${fx.susp > 1 ? 's' : ''} by the team.`, p.tid); }
     if (fx.clearStock) delete O.jersey.stock[p.id];
     if (fx.renumber) { const used = new Set(L.teams[L.userTeam].roster.map(id => L.players[id].num)); let n = R.int(1, 99), g = 0; while (used.has(n) && g++ < 200) n = R.int(1, 99); p.num = n; }

@@ -121,6 +121,10 @@ const HELP = [
   ['simscout', 'Season', 'Simming ahead and auto-scouting', 'sim ahead skip scouting auto scout check-in needs projected pick',
    `<p>If you press <b>SIM TO PLAYOFFS</b>, scouting check-ins don't stop the sim. Your scouts spend the points themselves, focusing on prospects at positions you need who are likely to still be there at your projected picks. When a check-in is open, <b>AUTO-SCOUT &amp; SIM TO PLAYOFFS</b> does the same thing.</p>
    <p>The Scouting tab's <b>NEEDS AT YOUR PICKS</b> panel shows your projected picks and how each need looks from there: ▲ a good fit is likely to be available, ▼ nothing worth taking is projected.</p>`],
+  ['morale', 'Players', 'Player morale (beta)', 'morale happiness mood happy frustrated locker room boost penalty ratings',
+   `<p>Every player has a <b>morale</b> score (0-100, about 60 is normal). It shows on the roster (sort by MORALE), on each player card, and as team morale on the Home tab.</p>
+   <p>It goes up with wins (especially big ones and streaks) and down with losses, injuries (a star going down hurts the whole locker room), being traded, and how you handle off-field events: suspending or fining a player stings him, backing him or supporting his charity lifts him. It drifts back toward normal each week and resets halfway in the offseason.</p>
+   <p>In games, morale shifts all of a player's ratings: +1 to +3 when he's happy or fired up, -1 to -3 when he's frustrated or miserable.</p>`],
   ['ops', 'Season', 'Operations: fans, stadium, prices (beta)', 'operations fans fan happiness stadium upgrade maintenance prices tickets season tickets food concessions jerseys merchandise events arrest sewage cash',
    `<p>The <b>OPERATIONS β</b> tab runs the business side. Operations cash is separate from the salary cap.</p>
    <p><b>Fan happiness</b> (0-100) rises with wins and good game days, and falls with losses, high prices, a run-down stadium and bad decisions. Happy fans buy more season tickets, single-game tickets, food and jerseys, and give you a louder home crowd on the field.</p>

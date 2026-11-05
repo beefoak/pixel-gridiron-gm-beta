@@ -70,7 +70,7 @@ function opsEventModal() {
   const e = OPS_EVENTS.find(x => x.id === ev.id);
   const p = ev.ctx && ev.ctx.pid !== undefined ? G.players[ev.ctx.pid] : null;
   openModal(`<h3 class="px">⚠ ${esc(ev.title.toUpperCase())}</h3>
-    <p>${esc(ev.text)}</p>${p ? `<p class="small dim">${p.pos} ${pLink(p)} · ${ovrB(p.ovr)} · popularity ${playerPopularity(G, p)}</p>` : ''}
+    <p>${esc(ev.text)}</p>${p ? `<p class="small dim">${p.pos} ${pLink(p)} · ${ovrB(p.ovr)} · popularity ${playerPopularity(G, p)} · morale ${moraleChip(p, true)}</p>` : ''}
     <div class="small">FAN HAPPINESS ${fanMeterHtml(G.ops.fans)}</div><p class="small">Operations cash: <b>${fmtM(G.ops.cash)}</b></p>
     <div class="ev-choices">${e.choices.map((c, i) => { const fx = eventChoiceFx(G, ev, i); return `<button class="btn ev-choice" data-act="opsChoose" data-v="${i}"><b>${esc(c.label)}</b><span class="small">${esc(fxSummary(G, fx, ev) || 'no immediate effect')}${c.risk ? ' · risky' : ''}</span></button>`; }).join('')}</div>
     <p class="dim small">You have to respond before the season can continue.</p>`);
