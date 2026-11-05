@@ -70,7 +70,7 @@ function simGame(L, homeId, awayId, opts) {
   const absX = (side, on) => side === 0 ? on : 100 - on;
   const ab = (s) => teams[s].abbr;
   const yardStr = (side, on) => on === 50 ? 'the 50' : on < 50 ? ab(side) + ' ' + on : ab(1 - side) + ' ' + (100 - on);
-  const hfa = (side) => (!neutral && side === 0) ? 1 : 0;
+  const hfa = (side) => (!neutral && side === 0) ? (opts.crowd || 1) : 0; // crowd: fan happiness scales home-field advantage
 
   function addPts(side, pts) { score[side] += pts; qs[side][Math.min(q, 5) - 1] += pts; }
   function logIt(text, toAbs, type) {

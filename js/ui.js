@@ -93,6 +93,7 @@ function phaseLabel() {
   return '';
 }
 function phaseButtons() {
+  if (G.ops && G.ops.event) return `<span class="px small bad blink2">⚠ ${esc(G.ops.event.title.toUpperCase())}</span><button class="btn" data-act="opsEvent">RESPOND &gt;</button>`;
   if (G.scoutStop) return `<span class="px small gold blink2">${esc(G.scoutStop.name.toUpperCase())}</span><button class="btn alt" data-act="tab" data-tab="scouting">SCOUTING (${G.scoutPts} PTS)</button><button class="btn" data-act="scoutDone">DONE SCOUTING &gt;</button>${G.phase === 'regular' ? `<button class="btn alt" data-act="simSeason" title="Your scouts spend points for you at every check-in">»» AUTO-SCOUT &amp; SIM TO PLAYOFFS</button>` : `<button class="btn alt" data-act="scoutAutoDone">AUTO-SCOUT &amp; CONTINUE &gt;</button>`}`;
   switch (G.phase) {
     case 'regular': return `<button class="btn" data-act="playWeek">&gt; PLAY WEEK ${G.week}</button><button class="btn alt" data-act="simSeason">»» SIM TO PLAYOFFS</button>`;
@@ -109,8 +110,8 @@ function phaseButtons() {
 function renderHeader() {
   const u = TM(G.userTeam);
   return `<header class="top" style="--c1:${u.c1};--c2:${u.c2}">
-    <div class="brand px">PIXEL GRIDIRON GM</div>
-    <div class="me">${helm(u.id, 44)}<div><div class="px tname">${esc(u.city)} ${esc(u.name)}</div><div class="sub">${recStr(u.rec)} · ${phaseLabel()} · ${capChip()}</div></div></div>
+    <div class="brand px">PIXEL GRIDIRON GM <span class="beta-tag">β BETA</span></div>
+    <div class="me">${helm(u.id, 44)}<div><div class="px tname">${esc(u.city)} ${esc(u.name)}</div><div class="sub">${recStr(u.rec)} · ${phaseLabel()} · ${capChip()}${G.ops ? ` · <a class="plink fan-chip ${fanMood(G.ops.fans)[1]}" data-act="tab" data-tab="ops">FANS ${Math.round(G.ops.fans)}</a>` : ''}</div></div></div>
     <div class="actions">${phaseButtons()}</div>
     <div class="menu"><label class="chk"><input type="checkbox" data-change="watch" ${UI.watch ? 'checked' : ''}> Watch my games</label>
     <label class="chk"><input type="checkbox" data-change="autoRoster" ${G.autoRoster ? 'checked' : ''}> Auto-manage injuries</label>
@@ -118,11 +119,11 @@ function renderHeader() {
   </header>`;
 }
 function renderNav() {
-  const tabs = [['home', 'HOME'], ['roster', 'ROSTER'], ['depth', 'DEPTH'], ['training', 'TRAINING'], ['schedule', 'SCHEDULE'], ['standings', 'STANDINGS'], ['playoffs', 'PLAYOFFS'], ['leaders', 'LEADERS'], ['injuries', 'INJURIES'], ['news', 'NEWS'], ['fa', 'FREE AGENTS'], ['trade', 'TRADE'], ['contracts', 'CONTRACTS'], ['scouting', 'SCOUTING'], ['draft', 'DRAFT'], ['awards', 'AWARDS'], ['history', 'HISTORY'], ['records', 'RECORDS'], ['help', '? HELP']];
+  const tabs = [['home', 'HOME'], ['roster', 'ROSTER'], ['depth', 'DEPTH'], ['training', 'TRAINING'], ['schedule', 'SCHEDULE'], ['standings', 'STANDINGS'], ['playoffs', 'PLAYOFFS'], ['leaders', 'LEADERS'], ['injuries', 'INJURIES'], ['news', 'NEWS'], ['fa', 'FREE AGENTS'], ['trade', 'TRADE'], ['ops', 'OPERATIONS β'], ['contracts', 'CONTRACTS'], ['scouting', 'SCOUTING'], ['draft', 'DRAFT'], ['awards', 'AWARDS'], ['history', 'HISTORY'], ['records', 'RECORDS'], ['help', '? HELP']];
   return `<nav class="tabs">${tabs.filter(([k]) => k !== 'playoffs' || G.playoffs).filter(([k]) => k !== 'draft' || G.draft || G.draftHistory[G.year]).map(([k, n]) => `<button class="tab px ${UI.tab === k ? 'on' : ''}" data-act="tab" data-tab="${k}">${n}</button>`).join('')}</nav>`;
 }
 function renderTab() {
-  const f = { home: vHome, roster: vRoster, depth: vDepth, training: vTraining, schedule: vSchedule, standings: vStandings, playoffs: vPlayoffs, leaders: vLeaders, injuries: vInjuries, fa: vFA, trade: vTrade, news: vNews, contracts: vContracts, records: vRecords, scouting: vScouting, draft: vDraft, awards: vAwards, history: vHistory, help: vHelp }[UI.tab] || vHome;
+  const f = { ops: vOps, home: vHome, roster: vRoster, depth: vDepth, training: vTraining, schedule: vSchedule, standings: vStandings, playoffs: vPlayoffs, leaders: vLeaders, injuries: vInjuries, fa: vFA, trade: vTrade, news: vNews, contracts: vContracts, records: vRecords, scouting: vScouting, draft: vDraft, awards: vAwards, history: vHistory, help: vHelp }[UI.tab] || vHome;
   return f();
 }
 const panel = (title, body, cls) => `<section class="panel ${cls || ''}">${title ? `<h3 class="px">${title}</h3>` : ''}${body}</section>`;
@@ -590,6 +591,7 @@ function afterUserGame(week) {
 }
 function doPlayWeek() {
   const u = TM(G.userTeam);
+  if (G.ops && G.ops.event) return opsEventModal();
   if (!G.autoRoster && activeRoster(G, u).length > ROSTER_LIMIT) return toast(`Active roster is over ${ROSTER_LIMIT}. Cut players first.`);
   const wk = G.week;
   simWeek(G);
@@ -613,6 +615,7 @@ function onClick(e) {
   if (onLoreClick(act, el)) return;
   if (onFeedbackClick(act, el)) return;
   if (onOfferClick(act, el)) return;
+  if (onOpsClick(act, el)) return;
   switch (act) {
     case 'helpOpen': openHelpModal(); break;
     case 'helpCat': UI.helpCat = v; if ($('#modal .help')) openHelpModal(); else render(); break;
@@ -632,11 +635,13 @@ function onClick(e) {
         if (G.scoutStop) { reports += autoScoutStop(G); stops++; }
         simWeek(G);
         if (G.newOffers) break; // a trade offer came in before the deadline: stop so you can look at it
+        if (G.ops && G.ops.event) break; // an operations event needs a response
       }
       if (G.scoutStop && G.phase === 'awards') { reports += autoScoutStop(G); stops++; }
       persist();
       const sc = stops ? ` Scouts handled ${stops} check-in${stops > 1 ? 's' : ''} (${reports} report${reports === 1 ? '' : 's'}).` : '';
-      if (G.newOffers) { G.newOffers = 0; render(); toast(`Week ${G.week - 1}: a trade offer came in.${sc}`); openOffersModal(); }
+      if (G.ops && G.ops.event && G.phase === 'regular') { render(); toast(`Week ${G.week - 1}: something came up.${sc}`); }
+      else if (G.newOffers) { G.newOffers = 0; render(); toast(`Week ${G.week - 1}: a trade offer came in.${sc}`); openOffersModal(); }
       else { UI.tab = 'awards'; render(); toast('Regular season complete! Awards announced.' + sc); }
       break;
     }
@@ -648,7 +653,7 @@ function onClick(e) {
       if (g && UI.watch) watchGame(g.id);
       break;
     }
-    case 'simPlayoffs': while (G.phase === 'playoffs') simPlayoffRound(G); persist(); UI.tab = 'playoffs'; render(); break;
+    case 'simPlayoffs': while (G.phase === 'playoffs' && !(G.ops && G.ops.event)) simPlayoffRound(G); persist(); UI.tab = 'playoffs'; render(); break;
     case 'offseason': { runOffseason(G); persist(); UI.tab = 'draft'; render(); const hf = G.hofAuto; G.hofAuto = null; toast(hf ? (hf.length ? `Hall of Fame committee inducted ${hf.map(c => c.name).join(', ')}. ` : 'The Hall of Fame committee inducted no one this year. ') + 'Draft time!' : 'Players aged and developed. Draft time!'); break; }
     case 'draftToMe': simDraftToUser(G); persist(); render(); break;
     case 'draftOne': if (!draftDone(G)) aiDraftPick(G); maybeDraftOffer(G); persist(); render(); break;
@@ -709,11 +714,13 @@ function onClick(e) {
     case 'rpEnd': { stopReplay(); const g = RP.g; const logEl = $('#rpLog'); logEl.innerHTML = ''; RP.i = g.log.length; const last = g.log[g.log.length - 1]; rpScore(last); Field.frame($('#rpField').getContext('2d'), TM(g.home), TM(g.away), null, 0); g.log.slice().reverse().slice(0, 60).forEach(x => { const li = document.createElement('li'); li.className = x.type; li.innerHTML = `<span class="dim">${x.q > 4 ? 'OT' : 'Q' + x.q} ${fmtClock(x.clk)}</span> ${esc(x.text)}`; logEl.appendChild(li); }); $('#rpText').textContent = `FINAL: ${TM(g.away).abbr} ${g.as} - ${TM(g.home).abbr} ${g.hs}`; $('#rpBtn').textContent = '> REPLAY'; break; }
   }
   showNewOffers();
+  showNewOpsEvent();
 }
 function onChange(e) {
   const el = e.target; const k = el.dataset.change; if (!k) return;
   if (onDevChange(k, el)) return;
   if (onLoreChange(k, el)) return;
+  if (onOpsChange(k, el)) return;
   if (k === 'watch') UI.watch = el.checked;
   else if (k === 'autoRoster') { G.autoRoster = el.checked; persist(); }
   else if (k === 'schedWeek') { UI.schedWeek = +el.value; render(); }

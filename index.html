@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Pixel Gridiron GM</title>
+<title>Pixel Gridiron GM (Beta)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
 <style>
@@ -148,6 +148,14 @@ input[type=number]{font-family:'VT323',monospace;font-size:20px;background:var(-
 .hof-badge{font-family:'Press Start 2P',monospace;font-size:8px;background:var(--acc);color:#111;padding:3px 6px;border:2px solid #000;vertical-align:middle}
 .cls-strong{color:var(--good)}.cls-weak{color:var(--bad)}.cls-avg{color:var(--dim)}
 .clsset summary{cursor:pointer;margin-top:8px;color:var(--acc)}.clickrow{cursor:pointer}.clickrow:hover td{background:rgba(255,255,255,.05)}
+.beta-tag{font-size:8px;background:var(--acc);color:#111;padding:2px 5px;border:2px solid #000;vertical-align:middle;text-shadow:none}
+.beta-note{border:2px dashed var(--acc);padding:6px 10px;margin:8px 0;color:var(--acc);font-size:15px}
+.fanmeter{display:flex;align-items:center;gap:10px;margin:4px 0}.fm-bar{flex:1;height:14px;background:#0b0f1a;border:2px solid #000;min-width:80px}.fm-bar i{display:block;height:100%}
+.fanmeter.big .fm-bar{height:24px}.fanmeter.big .px{font-size:12px}
+.facs{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:8px}.fac{border:2px solid #000;background:var(--panel2);padding:8px;display:flex;flex-direction:column;gap:6px}
+.price-in{width:80px;font:inherit;font-size:16px;background:#0b0f1a;color:inherit;border:2px solid #3a4560;padding:2px 4px}
+.ev-choices{display:flex;flex-direction:column;gap:8px;margin:10px 0}.ev-choice{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;font-family:'VT323',monospace;font-size:17px;padding:8px 10px}
+.ev-choice .small{opacity:.85}.fan-chip{font-weight:bold}
 .offer-card{border:2px solid #000;background:var(--panel2);padding:8px 10px;margin:8px 0}.offer-head{display:flex;align-items:center;gap:8px}
 .gold-btn{background:var(--acc);color:#111}
 .fb-form{display:flex;flex-direction:column;gap:10px;margin:12px 0}.fb-form label{display:flex;flex-direction:column;gap:4px}
@@ -198,22 +206,24 @@ ul.rp-log li.td,ul.rp-log li.fg{color:var(--acc)}ul.rp-log li.to{color:var(--bad
 <div id="app"></div>
 <div id="modal" class="modal hidden"></div>
 <div id="toast"></div>
-<script src="js/core.js?v=18"></script>
-<script src="js/schedule.js?v=18"></script>
-<script src="js/sim.js?v=18"></script>
-<script src="js/league.js?v=18"></script>
-<script src="js/gm.js?v=18"></script>
-<script src="js/biz.js?v=18"></script>
-<script src="js/dev.js?v=18"></script>
-<script src="js/lore.js?v=18"></script>
-<script src="js/sprites.js?v=18"></script>
-<script src="js/ui.js?v=18"></script>
-<script src="js/ui_gm.js?v=18"></script>
-<script src="js/ui_biz.js?v=18"></script>
-<script src="js/ui_dev.js?v=18"></script>
-<script src="js/ui_lore.js?v=18"></script>
-<script src="js/help.js?v=18"></script>
-<script src="js/feedback.js?v=18"></script>
-<script src="js/offers.js?v=18"></script>
+<script src="js/core.js?v=19c"></script>
+<script src="js/schedule.js?v=19c"></script>
+<script src="js/sim.js?v=19c"></script>
+<script src="js/league.js?v=19c"></script>
+<script src="js/gm.js?v=19c"></script>
+<script src="js/biz.js?v=19c"></script>
+<script src="js/dev.js?v=19c"></script>
+<script src="js/lore.js?v=19c"></script>
+<script src="js/ops.js?v=19c"></script>
+<script src="js/sprites.js?v=19c"></script>
+<script src="js/ui.js?v=19c"></script>
+<script src="js/ui_gm.js?v=19c"></script>
+<script src="js/ui_biz.js?v=19c"></script>
+<script src="js/ui_dev.js?v=19c"></script>
+<script src="js/ui_lore.js?v=19c"></script>
+<script src="js/help.js?v=19c"></script>
+<script src="js/feedback.js?v=19c"></script>
+<script src="js/offers.js?v=19c"></script>
+<script src="js/ui_ops.js?v=19c"></script>
 </body>
 </html>

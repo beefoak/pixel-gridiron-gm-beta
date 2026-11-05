@@ -2,6 +2,15 @@
 
 A pixel-art pro football general manager game that runs entirely in the browser.
 
+> **Beta branch.** This branch adds an **Operations** tab (still being balanced):
+> - **Fan happiness meter** - moves with wins and losses, prices, stadium condition and how you handle events. Happy fans buy more and make your home crowd louder.
+> - **Stadium** - six facilities (seating, restrooms, parking, concessions, team store, video board) that wear down over the season. Set upkeep levels or pay to upgrade them.
+> - **Pricing** - season tickets, single-game tickets, concessions and jerseys, each compared against a fair price.
+> - **Jerseys** - production is split across your most popular players. Run it automatically or allocate it yourself.
+> - **Random events** - burst pipes, power outages, player arrests, charity requests and more, each needing a response.
+>
+> The beta keeps its own save slot. The first time you open it, it imports your main save without changing it.
+
 Take over one of 32 franchises and run it season after season:
 
 - **Simulated football** - every play is simulated, producing full box scores, league leaders and watchable pixel-field replays of your games.

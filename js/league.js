@@ -1,6 +1,7 @@
 'use strict';
 // ================= League state & season flow =================
-const SAVE_KEY = 'pixel_gridiron_gm_v1';
+const SAVE_KEY = 'pixel_gridiron_gm_beta_v1'; // BETA: separate save slot
+const MAIN_SAVE_KEY = 'pixel_gridiron_gm_v1';
 const ROUND_NAMES = ['Wild Card', 'Divisional', 'Conference Championship', 'Megacup'];
 const REG_WEEKS = 18;
 
@@ -51,6 +52,7 @@ function newLeague(userTeam, customNames) {
   assignInitialContracts(L);
   genRecords(L); L.stories = []; L.flags = {};
   L.hof = []; L.hofVoted = {};
+  initOps(L);
   const ranks = genLore(L);
   L.schedule = makeSchedule(L.year, ranks);
   L.pickOwn = {}; L.trades = []; L.scoutPts = 6; L.scoutStop = null; L.scoutReport = null;
@@ -234,7 +236,7 @@ function gameSummary(L, res) {
 
 function playGame(L, g, playoff) {
   const isUser = g.home === L.userTeam || g.away === L.userTeam;
-  const res = simGame(L, g.home, g.away, { log: isUser, playoff, neutral: !!g.neutral });
+  const res = simGame(L, g.home, g.away, { log: isUser, playoff, neutral: !!g.neutral, crowd: g.home === L.userTeam && typeof crowdFactor === 'function' ? crowdFactor(L) : 1 });
   g.played = true; g.hs = res.hs; g.as = res.as; g.ot = res.ot;
   g.summary = gameSummary(L, res);
   const cbox = {}; for (const pid in res.box) { const c = compactStats(res.box[pid]); c.tid = res.box[pid].tid; cbox[pid] = c; }
@@ -243,6 +245,7 @@ function playGame(L, g, playoff) {
   for (const pid in res.box) { const p = L.players[pid]; if (p) addStats(playoff ? p.pstats : p.stats, res.box[pid]); }
   if (!playoff) { updateRecords(L, g); checkGameRecords(L, res, g); }
   postGameInjuries(L, res);
+  if (typeof opsAfterGame === 'function') opsAfterGame(L, g, playoff);
   return res;
 }
 
@@ -255,6 +258,7 @@ function simWeek(L) {
   weeklyTraining(L);
   L.week++;
   if (typeof maybeDeadlineOffer === 'function') maybeDeadlineOffer(L);
+  if (typeof opsWeek === 'function') opsWeek(L);
   teamSeasonRecords(L);
   weeklyStories(L);
   const stop = SCOUT_STOPS[L.week];
@@ -392,6 +396,7 @@ function simPlayoffRound(L) {
     if (loser === L.userTeam || winner === L.userTeam) news(L, `${ROUND_NAMES[r]}: ${L.teams[winner].abbr} def. ${L.teams[loser].abbr} ${Math.max(g.hs, g.as)}-${Math.min(g.hs, g.as)}${g.ot ? ' (OT)' : ''}`, L.userTeam);
   }
   weeklyHealth(L);
+  if (typeof opsWeek === 'function') opsWeek(L);
   if (r === 3) {
     const g = P.games.find(x => x.round === 3);
     P.champion = g.winner; P.elim[g.winner] = 4;
@@ -440,6 +445,7 @@ function careerTotals(p) { const t = emptyStats(); p.career.forEach(c => addStat
 function runOffseason(L) {
   const season = L.year;
   L.hofAuto = autoHofVotes(L); // you skipped the vote: the selection committee inducts the clear cases
+  if (typeof opsSeasonEnd === 'function') { opsSeasonEnd(L); maybeOpsEvent(L, 0.35); }
   for (const t of L.teams) {
     t.history.push({ year: season, w: t.rec.w, l: t.rec.l, t: t.rec.t, pf: t.rec.pf, pa: t.rec.pa, seed: L.playoffs ? seedOf(L, t.id) : 0, result: playoffResult(L, t.id), ts: teamSeasonStats(L, t.id).v });
     t.prevWins = t.rec.w;
@@ -682,6 +688,7 @@ function startSeason(L) {
   for (const t of L.teams) if (t.id !== L.userTeam) { aiCapComply(L, t); cutToLimit(L, t, true); aiFillRoster(L, t); }
   L.schedule = makeSchedule(L.year, L.lastRanks);
   L.week = 1; L.phase = 'regular';
+  if (typeof opsSeasonStart === 'function') opsSeasonStart(L);
   L.prospects = generateDraftClass(L, 300);
   announceGenerational(L);
   news(L, `The ${L.year} regular season begins! Scouts are on the road evaluating the ${L.year + 1} draft class.`, L.userTeam);
@@ -699,7 +706,7 @@ function saveLeague(L) {
   try { localStorage.setItem(SAVE_KEY, serializeLeague(L)); return true; } catch (e) { return false; }
 }
 function loadLeague() {
-  try { const s = localStorage.getItem(SAVE_KEY); if (!s) return null; const L = JSON.parse(s); if (!L || L.version !== 1) return null; for (const id in L.players) { const p = L.players[id]; p.stats = Object.assign(emptyStats(), p.stats); p.pstats = Object.assign(emptyStats(), p.pstats); } migrateLeague(L); migrateBiz(L); migrateDev(L); migrateLore(L); return L; } catch (e) { return null; }
+  try { const s = localStorage.getItem(SAVE_KEY) || localStorage.getItem(MAIN_SAVE_KEY); if (!s) return null; /* BETA: first run imports your main save */ const L = JSON.parse(s); if (!L || L.version !== 1) return null; for (const id in L.players) { const p = L.players[id]; p.stats = Object.assign(emptyStats(), p.stats); p.pstats = Object.assign(emptyStats(), p.pstats); } migrateLeague(L); migrateBiz(L); migrateDev(L); migrateLore(L); migrateOps(L); return L; } catch (e) { return null; }
 }
-function hasSave() { try { return !!localStorage.getItem(SAVE_KEY); } catch (e) { return false; } }
+function hasSave() { try { return !!(localStorage.getItem(SAVE_KEY) || localStorage.getItem(MAIN_SAVE_KEY)); } catch (e) { return false; } }
 function deleteSave() { try { localStorage.removeItem(SAVE_KEY); } catch (e) { /* ignore */ } }
