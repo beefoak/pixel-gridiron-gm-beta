@@ -61,10 +61,23 @@ function setStartName(i, field, raw) {
 // Link between the live game and the beta (each site has its own save slot).
 const SWITCH_SITE = { url: 'https://beefoak.github.io/pixel-gridiron-gm/', label: '◀ PLAY MAIN GAME', title: 'Go back to the main (stable) version. Your beta save stays here.' };
 function switchSiteBtn(tiny) { return `<button class="btn ${tiny ? 'tiny ' : ''}alt" data-act="switchSite" title="${SWITCH_SITE.title}">${SWITCH_SITE.label}</button>`; }
+function betaNotice() {
+  return `<details class="beta-box" open><summary class="px">WHAT'S DIFFERENT IN THE BETA</summary>
+  <p>This is a test build of BitIron. Everything from the main game is here, plus:</p>
+  <ul>
+    <li><b>Operations tab</b> - a fan happiness meter, six stadium facilities to maintain and upgrade, ticket, food and jersey prices, and jersey production split across your most popular players.</li>
+    <li><b>Random events</b> - burst pipes, power outages, player arrests, charity requests and more. You have to respond before the season continues.</li>
+    <li><b>Home crowd</b> - happy fans make your home-field advantage stronger.</li>
+    <li><b>Player morale</b> - wins, losses, injuries, trades and your event responses make players happier or unhappier, shifting their ratings by up to ±3 in games.</li>
+    <li><b>Trade offers</b> - rarer than in the main game (about one per season), and some stay open for 2-4 weeks.</li>
+  </ul>
+  <p class="dim">The beta keeps its own save. The first time you open it, it copies your main save; after that the two are separate. New features are still being balanced - use ✉ FEEDBACK to report anything odd.</p></details>`;
+}
 function renderStart() {
   const saved = hasSave();
   let h = `<div class="start"><div class="logo px">BIT<span>IRON</span></div>
   <p class="tag">Run a pro football franchise. Draft, develop, survive injuries, chase the title.</p><div class="center"><button class="btn alt" data-act="helpOpen">? HOW TO PLAY</button> <button class="btn alt" data-act="feedback">✉ FEEDBACK</button> ${switchSiteBtn()}</div>`;
+  h += betaNotice();
   if (saved) h += `<div class="center"><button class="btn big" data-act="continue">&gt; CONTINUE SAVED GAME</button></div>`;
   h += `<h2 class="px">${UI.editNames ? 'NAME YOUR LEAGUE' : saved ? 'OR START A NEW FRANCHISE' : 'CHOOSE YOUR TEAM'}</h2>
   <div class="center">${UI.editNames ? `<p class="dim">Rename any team and its abbreviation (2-4 letters). Cities and colors stay the same. Names are remembered in this browser.</p><button class="btn" data-act="namesDone">DONE - PICK A TEAM</button><button class="btn alt" data-act="namesReset">RESET TO DEFAULTS</button>` : `<button class="btn alt" data-act="namesEdit">CUSTOMIZE TEAM NAMES</button>`}</div><div class="pick-grid">`;
