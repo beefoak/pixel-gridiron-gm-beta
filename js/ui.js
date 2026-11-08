@@ -69,6 +69,7 @@ function betaNotice() {
     <li><b>Random events</b> - burst pipes, power outages, player arrests, charity requests and more. You have to respond before the season continues.</li>
     <li><b>Home crowd</b> - happy fans make your home-field advantage stronger.</li>
     <li><b>Player morale</b> - wins, losses, injuries, trades and your event responses make players happier or unhappier, shifting their ratings by up to ±3 in games.</li>
+    <li><b>Player portraits</b> - every player has a generated pixel headshot (head shape, chin, eyes, brows, nose, facial hair, hair style and colour). Hair greys and recedes with age, and his expression follows his morale.</li>
     <li><b>Trade offers</b> - rarer than in the main game (about one per season), and some stay open for 2-4 weeks.</li>
   </ul>
   <p class="dim">The beta keeps its own save. The first time you open it, it copies your main save; after that the two are separate. New features are still being balanced - use ✉ FEEDBACK to report anything odd.</p></details>`;
@@ -477,7 +478,7 @@ function playerModal(pid) {
   const abar = (k, hi) => { const v = p.attrs[k]; return `<div class="abar ${hi ? 'hi' : ''}"><span>${ATTR_NAMES[k]}</span><div class="bar"><i class="${ovrCls(v)}" style="width:${v}%"></i></div><b>${v}</b></div>`; };
   const dr = p.draft ? `${p.draft.year} R${p.draft.rd} #${p.draft.ovr} (${TM(p.draft.tid).abbr})` : (prospect ? `${G.draft ? G.draft.year : G.year + 1} prospect` : p.exp > 0 ? 'Pre-league / Undrafted' : 'Undrafted');
   let h = `<div class="pcard" style="--c1:${t ? t.c1 : '#444'};--c2:${t ? t.c2 : '#999'}">
-    <img class="psprite" src="${Sprites.player(p, t, 6)}" alt="">
+    <img class="pface" src="${Faces.portrait(p, t)}" alt="" title="${esc(Faces.describe(p))}">
     <div class="pinfo"><div class="px pname">#${p.num} ${esc(fullName(p))}</div>
       <div>${p.pos} · ${t ? teamLink(t.id, true) : prospect ? 'Draft Prospect' : 'Free Agent'}</div>
       <div class="dim">Age ${p.age} · ${htStr(p.ht)} ${p.wt} lbs · ${esc(p.college)} · Exp ${p.exp} yr · Drafted: ${dr}</div>${p.contract && !prospect ? `<div>Contract: <b>${esc(contractStr(G, p))}</b> · market ${fmtM(marketSalary(G, p))}</div>` : p.tid === -1 ? `<div>Free agent · asking ${fmtM(askingContract(G, p, 'fa').sal)}/yr</div>` : ''}

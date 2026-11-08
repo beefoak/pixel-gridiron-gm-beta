@@ -8,6 +8,7 @@ A pixel-art pro football general manager game that runs entirely in the browser.
 > - **Pricing** - season tickets, single-game tickets, concessions and jerseys, each compared against a fair price.
 > - **Jerseys** - production is split across your most popular players. Run it automatically or allocate it yourself.
 > - **Random events** - burst pipes, power outages, player arrests, charity requests and more, each needing a response.
+> - **Player portraits** - generated pixel headshots on player profiles, with varied head shapes, chins, eyes, brows, noses, facial hair and hair. Hair greys and recedes with age; expressions follow morale.
 > - **Player morale** - wins, losses, injuries, trades and your responses to events make players happier or unhappier, shifting their ratings by up to ±3 in games.
 >
 > The beta keeps its own save slot. The first time you open it, it imports your main save without changing it.

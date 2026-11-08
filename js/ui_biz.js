@@ -40,7 +40,7 @@ function negModal(pid, ctx) {
   const rstNote = ctx === 'rst' ? `<p class="small">Tear up his current deal (<b>${fmtM(p.contract.sal)}</b> thru ${p.contract.exp}) and sign a new one starting now. He takes a discount for getting paid early - the more cheap years left on his deal, the bigger the discount; the new deal must run past ${p.contract.exp}. One restructure per player per season.</p>` : '';
   const interest = ctx === 'fa' && G.phase === 'freeagency' && p.ovr >= 70 ? '<span class="gold">Several teams are interested - expect a bidding war.</span>' : ctx === 'fa' && G.phase !== 'freeagency' ? '<span class="dim">Unsigned free agent - may take a discount.</span>' : '';
   const h = `<div class="px small center">${title}</div>
-   <div class="pcard" style="--c1:${p.tid >= 0 ? TM(p.tid).c1 : '#444'}"><img class="psprite" src="${Sprites.player(p, p.tid >= 0 ? TM(p.tid) : null, 6)}" alt=""><div class="pinfo">
+   <div class="pcard" style="--c1:${p.tid >= 0 ? TM(p.tid).c1 : '#444'}"><img class="pface" src="${Faces.portrait(p, p.tid >= 0 ? TM(p.tid) : null)}" alt=""><div class="pinfo">
      <div class="px pname">${esc(fullName(p))}</div><div>${p.pos} · age ${p.age} · OVR ${ovrB(p.ovr)} · POT ${potB(p.pot, p.gen)} · ${statusTag(p)}</div>
      <div class="dim">Last season: ${last ? `${last.year} ${last.tm}: ${esc(statLine(p, last))}` : 'none'}</div>
      <div class="dim">Career: ${esc(careerBrief(p))}</div>
