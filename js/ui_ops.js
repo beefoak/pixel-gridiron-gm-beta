@@ -41,12 +41,15 @@ function vOps() {
   const cards = FACILITIES.map(([k]) => {
     const f = O.stadium[k], F = FAC[k], c = upgradeCost(G, k);
     const cc = f.cond >= 70 ? 'o-great' : f.cond >= 50 ? 'o-good' : f.cond >= 35 ? 'o-avg' : 'o-bad';
-    return `<div class="fac"><div class="px small">${F.name} <span class="gold">LV ${f.lvl}/5</span></div><div class="dim small">${F.blurb}</div>
+    const le = k === 'locker' ? lockerEffect(G) : 0;
+    const note = k === 'locker' ? `<div class="small ${le < 0 ? 'bad' : le > 0 ? 'good' : 'dim'}">Team morale ${le > 0 ? '+' : ''}${Math.round(le * 10) / 10}/wk${f.lvl >= 3 && f.cond >= 60 ? ' · faster injury recovery' : ''}</div>`
+      : f.cond < 25 ? '<div class="small bad">Fans furious · may fail on game day</div>' : f.cond < 45 ? '<div class="small bad">Fans are complaining</div>' : '';
+    return `<div class="fac ${k === 'locker' ? 'fac-locker' : ''}"><div class="px small">${F.name} <span class="gold">LV ${f.lvl}/5</span></div><div class="dim small">${F.blurb}</div>${note}
       <div class="rbar"><span>COND</span><div class="bar"><i class="${cc}" style="width:${Math.round(f.cond)}%"></i></div><b>${Math.round(f.cond)}</b></div>
       <div class="small">Upkeep <select data-change="opsMaint" data-k="${k}">${MAINT_LEVELS.map((m, i) => `<option value="${i}" ${f.maint === i ? 'selected' : ''}>${m}${i ? ' $' + Math.round(MAINT_COST[i] * 1000) + 'K/wk' : ''}</option>`).join('')}</select>
       ${c === null ? '<span class="good small">MAXED</span>' : `<button class="btn tiny ${O.cash >= c ? '' : 'alt'}" data-act="opsUpgrade" data-k="${k}" ${O.cash >= c ? '' : 'disabled'}>UPGRADE ${fmtM(c)}</button>`}</div></div>`;
   }).join('');
-  h += panel(`STADIUM <span class="dim small">avg condition ${Math.round(avgCond(G))} · upkeep ${fmtM(maintPerWeek(G))}/week</span>`, `<p class="dim small">Facilities wear down with every home game. Upkeep slows it (PREMIUM slowly repairs). Upgrades restore condition to 100 and add a level. Run-down facilities make embarrassing events more likely.</p><div class="facs">${cards}</div>`);
+  h += panel(`STADIUM <span class="dim small">avg condition ${Math.round(avgCond(G))} · upkeep ${fmtM(maintPerWeek(G))}/week</span>`, `<p class="dim small">Fan facilities wear down with every home game; the locker room wears every week. Upkeep slows it (PREMIUM slowly repairs). Upgrades restore condition to 100 and add a level. Below 45 condition fans complain after every home game, below 25 a facility can fail outright, and a run-down locker room drags team morale every week.</p><div class="facs">${cards}</div>`);
   // jerseys
   const J = O.jersey, plan = jerseyPlan(G);
   h += panel(`JERSEY SALES <span class="dim small">production ${jerseyCapacity(G).toLocaleString()}/week</span>`,

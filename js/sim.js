@@ -58,6 +58,7 @@ function simGameCore(L, homeId, awayId, opts) {
   const teams = [L.teams[homeId], L.teams[awayId]];
   const lu = [buildLineup(L, teams[0]), buildLineup(L, teams[1])];
   const neutral = !!opts.neutral, playoff = !!opts.playoff;
+  const cm = teams.map(t => typeof coachMods === 'function' ? coachMods(L, t, playoff) : { pass: 0, deep: 0, comp: 0, run: 0, qbRun: 0, to: 1, sack: 1, deepAllow: 0, dcomp: 0, runDef: 0, int: 1, rz: 0, go4: 0, noGo: 0, hurry: 0 });
   const box = {}; const DUMMY = emptyStats();
   const score = [0, 0]; const qs = [[0, 0, 0, 0, 0], [0, 0, 0, 0, 0]];
   const tstat = [0, 1].map(() => ({ plays: 0, fd: 0, to: 0, pen: 0 }));
@@ -171,7 +172,7 @@ function simGameCore(L, homeId, awayId, opts) {
   function passPlay(hurry) {
     const off = lu[poss], def = lu[1 - poss]; const qb = off.QB[0], qa = qb.attrs; const qbl = ln(qb, poss);
     const h = hfa(poss);
-    const sackP = 0.066 * Math.pow(def.passRush / off.passBlock, 3) * clamp(1 - (qa.awr - 75) * 0.01, 0.6, 1.4) * (1 - 0.08 * h);
+    const sackP = 0.066 * Math.pow(def.passRush / off.passBlock, 3) * clamp(1 - (qa.awr - 75) * 0.01, 0.6, 1.4) * (1 - 0.08 * h) * cm[1 - poss].sack;
     if (R.chance(sackP)) {
       const loss = R.int(2, 10);
       const sacker = pickDef(def, 'sack'); const sb = ln(sacker, 1 - poss);
@@ -199,12 +200,14 @@ function simGameCore(L, homeId, awayId, opts) {
     const tgt = pickTarget(off), ta = tgt.attrs, tb = ln(tgt, poss);
     const rr = ta.cth * 0.4 + ta.rte * 0.35 + ta.spd * 0.25;
     const dr = Math.random();
-    let depth = dr < 0.6 ? 0 : dr < 0.87 ? 1 : 2;
+    const sh = cm[poss].deep;
+    let depth = dr < 0.6 - sh ? 0 : dr < 0.87 - sh * 0.5 ? 1 : 2;
     if (100 - ballOn <= 12) depth = 0;
     let comp = [0.735, 0.545, 0.36][depth] + (qa.tha - 75) * 0.0045 + (rr - 75) * 0.003 - (def.coverage - 75) * 0.0045 + (off.passBlock - def.passRush) * 0.002 + 0.012 * h;
-    if (depth === 2) comp += (qa.thp - 75) * 0.003;
+    if (depth === 2) comp += (qa.thp - 75) * 0.003 + cm[1 - poss].deepAllow;
+    comp += cm[poss].comp + cm[1 - poss].dcomp + (hurry ? cm[poss].hurry : 0) - (100 - ballOn <= 20 ? cm[1 - poss].rz : 0);
     comp = clamp(comp, 0.2, 0.9);
-    const intP = [0.017, 0.033, 0.056][depth] * clamp(1 + (def.coverage - 75) * 0.03 - ((qa.tha + qa.awr) / 2 - 75) * 0.03, 0.35, 2.5);
+    const intP = [0.017, 0.033, 0.056][depth] * clamp(1 + (def.coverage - 75) * 0.03 - ((qa.tha + qa.awr) / 2 - 75) * 0.03, 0.35, 2.5) * cm[1 - poss].int * cm[poss].to;
     qbl.pAtt++; tb.tgt++;
     let air = depth === 0 ? R.int(-3, 9) : depth === 1 ? R.int(10, 19) : R.int(20, 45);
     if (R.chance(intP)) {
@@ -250,12 +253,12 @@ function simGameCore(L, homeId, awayId, opts) {
 
   function runPlay(hurry, milk) {
     const off = lu[poss], def = lu[1 - poss]; const qb = off.QB[0];
-    const r = Math.random(); const qbRun = clamp(0.05 + (qb.attrs.spd - 65) * 0.004, 0.02, 0.18);
+    const r = Math.random(); const qbRun = clamp(0.05 + (qb.attrs.spd - 65) * 0.004 + cm[poss].qbRun, 0.02, 0.26);
     let car;
     if (r < qbRun) car = qb; else if (r < qbRun + 0.3 && off.RB[1]) car = off.RB[1]; else if (r < qbRun + 0.33 && off.WR[0]) car = off.WR[0]; else car = off.RB[0];
     const ca = car.attrs, cb = ln(car, poss);
     const cr = car.pos === 'RB' ? (ca.spd * 0.3 + ca.agi * 0.25 + ca.car * 0.1 + ca.str * 0.15 + ca.awr * 0.2) : (ca.spd * 0.5 + ca.agi * 0.3 + ca.str * 0.2) - 5;
-    const adv = ((off.runBlock * 0.6 + cr * 0.4) - def.runDef) / 10 + 0.15 * hfa(poss);
+    const adv = ((off.runBlock * 0.6 + cr * 0.4) - def.runDef) / 10 + 0.15 * hfa(poss) + cm[poss].run - cm[1 - poss].runDef;
     let yds = Math.round(R.gauss(3.4 + adv * 1.1, 3.5));
     if (yds < -4) yds = -R.int(1, 4);
     if (togo <= 1 && yds < 1 && R.chance(0.35)) yds = 1;
@@ -267,7 +270,7 @@ function simGameCore(L, homeId, awayId, opts) {
     if (isTD) cb.rTd++;
     else {
       const t = pickDef(def, 'run'); ln(t, 1 - poss).tkl++;
-      if (R.chance(0.0075 * clamp(80 / ca.car, 0.7, 1.6))) {
+      if (R.chance(0.0075 * clamp(80 / ca.car, 0.7, 1.6) * cm[poss].to)) {
         ln(t, 1 - poss).ff++;
         if (R.chance(0.55)) {
           cb.fum++; tstat[poss].to++;
@@ -337,12 +340,15 @@ function simGameCore(L, homeId, awayId, opts) {
         else if (clock <= 420 && diff < -3 && ballOn >= 35) go = true;
       }
       if (q >= 4 && diff < -8 && clock <= 600) go = true;
+      // coaching personality: gamblers go for it, conservative coaches kick
+      if (!go && cm[poss].go4 && togo <= 4 && ballOn >= 35 && R.chance(cm[poss].go4)) go = true;
+      if (go && cm[poss].noGo && !(q >= 4 && diff < 0) && R.chance(cm[poss].noGo)) go = false;
       if (!go) return fgDist <= maxFG ? fieldGoal() : punt();
     }
     let pp = 0.53;
     if (down === 3 && togo >= 7) pp = 0.88; else if (down === 3 && togo >= 4) pp = 0.7; else if (togo <= 2) pp = 0.38; else if (down === 1) pp = 0.5;
     if (hurry) pp += 0.25; if (milk) pp -= 0.25;
-    pp += (off.QB[0].attrs.tha - 75) * 0.004;
+    pp += (off.QB[0].attrs.tha - 75) * 0.004 + cm[poss].pass;
     if (R.chance(clamp(pp, 0.15, 0.95))) passPlay(hurry); else runPlay(hurry, milk);
   }
 

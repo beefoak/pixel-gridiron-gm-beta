@@ -52,6 +52,7 @@ function moraleWeek(L) {
     if (p.injury && !p.injury.susp) d -= 0.6;
     bumpMorale(L, p, d);
   }
+  if (typeof coachMoraleWeek === 'function') coachMoraleWeek(L);
 }
 function moraleInjury(L, p, weeks, illness) {
   if (p.tid < 0) return;

@@ -53,6 +53,7 @@ function newLeague(userTeam, customNames) {
   genRecords(L); L.stories = []; L.flags = {};
   L.hof = []; L.hofVoted = {};
   initOps(L);
+  if (typeof initCoaches === 'function') initCoaches(L);
   const ranks = genLore(L);
   L.schedule = makeSchedule(L.year, ranks);
   L.pickOwn = {}; L.trades = []; L.scoutPts = 6; L.scoutStop = null; L.scoutReport = null;
@@ -326,7 +327,7 @@ function computeAwards(L) {
   A.CPOY = top(comeback, p => (DEFENSE.includes(p.pos) ? defScore(p.stats) : offScore(p, p.stats, 0.72)) + p.ovr * 0.5);
   // Coach of the year: biggest improvement (or best record in year 1)
   const coy = L.teams.map(t => [t, t.prevWins === null ? t.rec.w + (t.rec.pf - t.rec.pa) / 50 : (t.rec.w - t.prevWins) * 2 + t.rec.w]).sort((a, b) => b[1] - a[1]).slice(0, 3);
-  A.COY = coy.map(([t]) => ({ tid: t.id, name: `Head Coach, ${t.city} ${t.name}`, abbr: t.abbr, line: recStr(t.rec), pos: 'HC' }));
+  A.COY = coy.map(([t]) => { const hc = L.coaches && L.coaches[t.staff && t.staff.HC]; return { tid: t.id, name: hc ? `${coachName(hc)}, ${t.city} ${t.name}` : `Head Coach, ${t.city} ${t.name}`, abbr: t.abbr, line: recStr(t.rec), pos: 'HC' }; });
   // All-Pro first team
   const ap = {};
   const byPos = (pos) => pool.filter(p => p.pos === pos && p.stats.gp >= 8);
@@ -455,6 +456,7 @@ function runOffseason(L) {
     t.history.push({ year: season, w: t.rec.w, l: t.rec.l, t: t.rec.t, pf: t.rec.pf, pa: t.rec.pa, seed: L.playoffs ? seedOf(L, t.id) : 0, result: playoffResult(L, t.id), ts: teamSeasonStats(L, t.id).v });
     t.prevWins = t.rec.w;
   }
+  if (typeof coachSeasonEnd === 'function') coachSeasonEnd(L); // coaching carousel (uses this season's records)
   for (const p of Object.values(L.players)) {
     if (p.tid === -2) continue;
     if (p.stats.gp > 0 || p.pstats.gp > 0) {
@@ -474,7 +476,7 @@ function runOffseason(L) {
   for (const p of Object.values(L.players)) {
     if (p.tid === -2) continue;
     p.age++; p.exp++;
-    const d = progressPlayer(p);
+    const d = progressPlayer(p) + (typeof coachDevelop === 'function' ? coachDevelop(L, p) : 0);
     if (p.tid === L.userTeam && Math.abs(d) >= 4) news(L, `${p.pos} ${fullName(p)} ${d > 0 ? 'improved' : 'declined'} ${d > 0 ? '+' : ''}${d} to ${p.ovr} OVR.`, p.tid);
     p.stats = emptyStats(); p.pstats = emptyStats();
     if (p.injury) { p.injury.weeks -= 26; if (p.injury.weeks <= 0) { p.injury = null; p.ir = false; } }
@@ -560,9 +562,10 @@ function draftPlayer(L, pid) {
   p.draft = { year: D.year, rd: pick.rd, pk: pick.pk, ovr: pick.ovr, tid: team.id };
   p.contract = { sal: rookieSalary(L, pick.ovr), exp: D.year + 3, rookie: true };
   if (pick.ovr === 1) story(L, 'DRAFT', `${team.abbr} take ${fullName(p)} first overall`, `The ${team.city} ${team.name} open the ${D.year} Draft by selecting ${p.pos} ${fullName(p)} out of ${p.college}. Rookie deal: 4 years at ${fmtM(p.contract.sal)} per year.`, [team.id], p.id);
+  pick.proj = p.sOvr; pick.projPot = p.sPot; pick.col = p.college; /* what the board showed when he was taken */
   clearScout(p);
+  pick.tr = ensureTrueRank(L, D)[pid]; /* before he leaves the pool, or the first pick of a draft is never ranked */
   D.pool = D.pool.filter(id => id !== pid);
-  pick.tr = ensureTrueRank(L, D)[pid];
   pick.pid = pid; pick.name = fullName(p); pick.pos = p.pos; pick.pOvr = p.ovr; pick.pPot = p.pot;
   D.cur++;
   if (pick.rd === 1 || team.id === L.userTeam) news(L, `Draft R${pick.rd} #${pick.ovr}: ${team.abbr} select ${p.pos} ${fullName(p)} (${p.college}).`, team.id);
@@ -693,6 +696,7 @@ function startSeason(L) {
   for (const t of L.teams) if (t.id !== L.userTeam) { aiCapComply(L, t); cutToLimit(L, t, true); aiFillRoster(L, t); }
   L.schedule = makeSchedule(L.year, L.lastRanks);
   L.week = 1; L.phase = 'regular';
+  if (typeof coachSeasonStart === 'function') coachSeasonStart(L);
   if (typeof opsSeasonStart === 'function') opsSeasonStart(L);
   L.prospects = generateDraftClass(L, 300);
   announceGenerational(L);
@@ -711,7 +715,7 @@ function saveLeague(L) {
   try { localStorage.setItem(SAVE_KEY, serializeLeague(L)); return true; } catch (e) { return false; }
 }
 function loadLeague() {
-  try { const s = localStorage.getItem(SAVE_KEY) || localStorage.getItem(MAIN_SAVE_KEY); if (!s) return null; /* BETA: first run imports your main save */ const L = JSON.parse(s); if (!L || L.version !== 1) return null; for (const id in L.players) { const p = L.players[id]; p.stats = Object.assign(emptyStats(), p.stats); p.pstats = Object.assign(emptyStats(), p.pstats); } migrateLeague(L); migrateBiz(L); migrateDev(L); migrateLore(L); migrateOps(L); return L; } catch (e) { return null; }
+  try { const s = localStorage.getItem(SAVE_KEY) || localStorage.getItem(MAIN_SAVE_KEY); if (!s) return null; /* BETA: first run imports your main save */ const L = JSON.parse(s); if (!L || L.version !== 1) return null; for (const id in L.players) { const p = L.players[id]; p.stats = Object.assign(emptyStats(), p.stats); p.pstats = Object.assign(emptyStats(), p.pstats); } migrateLeague(L); migrateBiz(L); migrateDev(L); migrateLore(L); migrateOps(L); if (typeof migrateCoaches === 'function') migrateCoaches(L); return L; } catch (e) { return null; }
 }
 function hasSave() { try { return !!(localStorage.getItem(SAVE_KEY) || localStorage.getItem(MAIN_SAVE_KEY)); } catch (e) { return false; } }
 function deleteSave() { try { localStorage.removeItem(SAVE_KEY); } catch (e) { /* ignore */ } }

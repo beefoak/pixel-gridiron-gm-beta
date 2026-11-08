@@ -11,7 +11,11 @@ const FACILITIES = [
   ['food', 'CONCESSIONS', 'Menu, speed and food quality. Drives food sales.', 0.9, 2.1],
   ['store', 'TEAM STORE', 'Jersey production and merchandise sales.', 0.6, 1.0],
   ['board', 'VIDEO BOARD & SOUND', 'Game-day atmosphere and crowd noise.', 1.2, 1.3],
+  ['locker', 'LOCKER ROOM', 'Lockers, training room and recovery. Wears every week; players notice it, not fans.', 1.0, 0.6],
 ];
+// Facilities fans see on game day (the locker room is for the players).
+const FAN_FACS = ['seats', 'bath', 'parking', 'food', 'store', 'board'];
+const FAC_GRIPES = { seats: 'Broken seats all over the stands', bath: 'The restrooms are a disgrace', parking: 'The parking lots are a potholed mess', food: 'Concession lines are endless and the food is bad', store: 'The team store is a mess', board: 'The video board keeps cutting out' };
 const FAC = Object.fromEntries(FACILITIES.map(f => [f[0], { key: f[0], name: f[1], blurb: f[2], mult: f[3], wear: f[4] }]));
 const UPG_COST = [0, 4, 8, 14, 22];                  // $M to go from level n to n+1, times the facility multiplier
 const MAINT_LEVELS = ['NONE', 'BASIC', 'STANDARD', 'PREMIUM'];
@@ -40,6 +44,7 @@ function migrateOps(L) {
   O.jersey = O.jersey || { auto: true, alloc: {}, stock: {}, sold: {} };
   O.season = O.season || opsEmptySeason();
   O.hist = O.hist || []; O.fanLog = O.fanLog || []; O.eventLog = O.eventLog || []; O.seen = O.seen || {};
+  if (!O.stadium.locker) O.stadium.locker = { lvl: R.int(1, 2), cond: R.int(60, 78), maint: 2 };
 }
 
 // ---------- Derived numbers ----------
@@ -53,11 +58,11 @@ function fairPrices(L) {
 }
 function priceIdx(L, k) { return L.ops.prices[k] / fairPrices(L)[k]; }
 function priceLabel(idx) { return idx < 0.85 ? ['BARGAIN', 'good'] : idx <= 1.08 ? ['FAIR', 'dim'] : idx <= 1.25 ? ['PRICEY', 'gold'] : ['GOUGING', 'bad']; }
-function avgCond(L) { const s = L.ops.stadium; return FACILITIES.reduce((a, f) => a + s[f[0]].cond, 0) / FACILITIES.length; }
-function avgLvl(L) { const s = L.ops.stadium; return FACILITIES.reduce((a, f) => a + s[f[0]].lvl, 0) / FACILITIES.length; }
+function avgCond(L) { const s = L.ops.stadium; return FAN_FACS.reduce((a, k) => a + s[k].cond, 0) / FAN_FACS.length; }
+function avgLvl(L) { const s = L.ops.stadium; return FAN_FACS.reduce((a, k) => a + s[k].lvl, 0) / FAN_FACS.length; }
 function fanMood(v) { return v >= 80 ? ['ELECTRIC', 'good'] : v >= 65 ? ['HAPPY', 'good'] : v >= 45 ? ['CONTENT', 'dim'] : v >= 30 ? ['RESTLESS', 'gold'] : ['ANGRY', 'bad']; }
 // Home crowd strength, used by the game sim (1 = normal home-field advantage).
-function crowdFactor(L) { return L.ops ? clamp(0.65 + L.ops.fans / 100 * 0.55 + (L.ops.stadium.board.lvl - 1) * 0.05, 0.6, 1.4) : 1; }
+function crowdFactor(L) { if (!L.ops) return 1; const s = L.ops.stadium; return clamp(0.65 + L.ops.fans / 100 * 0.55 + (s.board.lvl - 1) * 0.05 + (Math.min(s.board.cond, s.seats.cond) - 60) / 400, 0.6, 1.4); }
 function maintPerWeek(L) { const s = L.ops.stadium; return FACILITIES.reduce((a, f) => a + MAINT_COST[s[f[0]].maint], 0); }
 function upgradeCost(L, key) { const f = L.ops.stadium[key]; return f.lvl >= 5 ? null : Math.round(UPG_COST[f.lvl] * FAC[key].mult * 10) / 10; }
 
@@ -97,13 +102,42 @@ function opsHomeGame(L, g, playoff) {
   O.season.att += gate.att; O.season.games++;
   O.lastHome = { y: L.year, w: L.week, att: gate.att, cap: gate.cap, tick, food, park, playoff: !!playoff, opp: g.home === L.userTeam ? g.away : g.home };
   // wear and tear from a full house
-  for (const f of FACILITIES) s[f[0]].cond = clamp(s[f[0]].cond - f[4] * (0.6 + gate.att / gate.cap * 0.5), 0, 100);
+  for (const k of FAN_FACS) s[k].cond = clamp(s[k].cond - FAC[k].wear * (0.6 + gate.att / gate.cap * 0.5), 0, 100);
   O.homeWeek = true;
   // fans react to the experience
   const priceHit = (P.ticket / fp.ticket - 1) * 0.6 + (fIdx - 1) * 0.4;
   if (Math.abs(priceHit) > 0.05) fanChange(L, clamp(-priceHit * 5, -3.5, 1.2), priceHit > 0 ? 'Prices are too high at the stadium' : 'Fans love the affordable game day');
   const st = clamp((avgCond(L) - 65) / 22 + (avgLvl(L) - 1.5) * 0.25, -2.5, 1.5);
   if (Math.abs(st) > 0.25) fanChange(L, st, st > 0 ? 'The stadium experience is great' : 'The stadium is falling apart');
+  // individual facilities that have gone downhill draw their own complaints, and can fail outright
+  for (const k of FAN_FACS) {
+    const c = s[k].cond;
+    if (c < 45) fanChange(L, -clamp((45 - c) / 12, 0.4, 3), FAC_GRIPES[k]);
+    if (c < 25 && R.chance(0.3)) facilityFailure(L, k);
+  }
+}
+const FAIL_TEXT = { seats: 'A section of upper-deck seats was roped off mid-game after bolts sheared', bath: 'Half the restrooms backed up during the game', parking: 'A sinkhole closed a parking lot before kickoff', food: 'Concession stands lost power and closed by halftime', store: 'The team store was closed after a roof leak', board: 'The video board died in the first quarter' };
+function facilityFailure(L, k) {
+  const cost = Math.round(R.rand(0.4, 1.4) * FAC[k].mult * 10) / 10;
+  opsSpend(L, cost, 'events');
+  L.ops.stadium[k].cond = clamp(L.ops.stadium[k].cond + 12, 0, 100);
+  fanChange(L, -3.5, `${FAC[k].name.charAt(0) + FAC[k].name.slice(1).toLowerCase()} failed on game day`);
+  news(L, `${FAIL_TEXT[k]}. Emergency repairs cost ${fmtM(cost)}.`, L.userTeam);
+}
+// Locker room: players live in it every week. A run-down one drags morale; a great one lifts it and speeds recovery.
+function lockerEffect(L) { const x = L.ops.stadium.locker; return x.cond < 50 ? -(50 - x.cond) / 18 : x.cond >= 75 ? 0.12 * x.lvl : 0; }
+function lockerWeek(L) {
+  const x = L.ops.stadium.locker, d = lockerEffect(L), team = L.teams[L.userTeam];
+  if (typeof bumpTeamMorale === 'function' && d) {
+    const why = L.week % 4 === 1 ? (d < -0.4 ? 'The locker room is falling apart' : d > 0.3 ? 'Loves the team facilities' : null) : null;
+    bumpTeamMorale(L, L.userTeam, d, why);
+  }
+  if (x.cond < 30 && L.week % 4 === 1) news(L, `Players are grumbling about the state of the locker room (condition ${Math.round(x.cond)}).`, L.userTeam);
+  // a modern training room gets players back sooner
+  if (x.lvl >= 3 && x.cond >= 60) for (const id of team.roster) {
+    const p = L.players[id];
+    if (p.injury && !p.injury.susp && !p.injury.ill && p.injury.weeks > 1 && R.chance(0.08 * (x.lvl - 2))) p.injury.weeks--;
+  }
 }
 // Called from playGame for every game.
 function opsAfterGame(L, g, playoff) {
@@ -125,11 +159,12 @@ function opsWeek(L) {
   opsSpend(L, maintPerWeek(L), 'maint');
   for (const f of FACILITIES) {
     const x = s[f[0]];
-    const wear = f[4] * (O.homeWeek ? 0.15 : 0.45); // a home game already did most of the damage
-    const fix = f[4] * MAINT_EFF[x.maint] * (O.homeWeek ? 1 : 0.6);
+    const wear = f[0] === 'locker' ? 1.3 : f[4] * (O.homeWeek ? 0.15 : 0.45); // a home game already did most of the damage; the locker room is used every week
+    const fix = f[0] === 'locker' ? 1.3 * MAINT_EFF[x.maint] : f[4] * MAINT_EFF[x.maint] * (O.homeWeek ? 1 : 0.6);
     x.cond = clamp(x.cond - wear + fix, 0, 100);
   }
   O.homeWeek = false;
+  if (['regular', 'playoffs'].includes(L.phase)) lockerWeek(L);
   merchWeek(L);
   fanChange(L, (55 - O.fans) * 0.03, null); // drift toward neutral (not logged)
   O.fanLog = O.fanLog.filter(e => e.why);
@@ -280,6 +315,13 @@ const OPS_EVENTS = [
       { label: 'Comp tickets for everyone there', fx: { cash: -1.8, fans: 3, cond: { board: 15 } } },
       { label: 'Apologize with discount codes', fx: { cash: -0.3, fans: -1, cond: { board: 5 } } },
       { label: 'Say nothing', fx: { fans: -6 } },
+    ] },
+  { id: 'lockergripe', kind: 'org', w: lowCond('locker', 0.6), title: 'Players go public about the facilities',
+    text: () => 'Two veterans told reporters the locker room is "worse than my college locker room" - moldy showers, a broken hot tub and a weight room from the 90s.',
+    choices: [
+      { label: 'Renovate the locker room now', fx: { cash: -3, morTeam: 3, cond: { locker: 35 } } },
+      { label: 'Promise fixes after the season', fx: { cash: -0.5, morTeam: -1, cond: { locker: 8 } } },
+      { label: 'Tell them to stop complaining', fx: { morTeam: -5, fans: -2 } },
     ] },
   { id: 'scalpers', kind: 'org', w: () => 0.6, title: 'Counterfeit ticket ring',
     text: () => 'Thousands of fake tickets were sold online for the next home game. Fans with fake tickets are being turned away at the gate.',

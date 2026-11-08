@@ -4,10 +4,14 @@ A pixel-art pro football general manager game that runs entirely in the browser.
 
 > **Beta branch.** This branch adds an **Operations** tab (still being balanced):
 > - **Fan happiness meter** - moves with wins and losses, prices, stadium condition and how you handle events. Happy fans buy more and make your home crowd louder.
-> - **Stadium** - six facilities (seating, restrooms, parking, concessions, team store, video board) that wear down over the season. Set upkeep levels or pay to upgrade them.
+> - **Stadium** - seven facilities (seating, restrooms, parking, concessions, team store, video board, locker room) that wear down over the season. Set upkeep levels or pay to upgrade them.
 > - **Pricing** - season tickets, single-game tickets, concessions and jerseys, each compared against a fair price.
 > - **Jerseys** - production is split across your most popular players. Run it automatically or allocate it yourself.
 > - **Random events** - burst pipes, power outages, player arrests, charity requests and more, each needing a response.
+> - **Coaching staffs** - head coach, offensive and defensive coordinators with ratings, play styles (Air Raid, West Coast, Blitz Heavy, Cover 2 and more) and personality quirks that grow or fade over a career. Clinics, firings and buyouts, plus an end-of-season coaching carousel where hot coordinators get hired away as head coaches.
+> - **Locker room** - a seventh stadium facility that drives player morale and injury recovery. Neglected fan facilities draw complaints and can fail on game day.
+> - **Live draft recap** - every pick so far, projected vs. true ratings and true class rank.
+> - **Sidebar navigation** - grouped tabs in a sidebar that collapses to a menu on phones.
 > - **Player portraits** - generated pixel headshots on player profiles, with varied head shapes, chins, eyes, brows, noses, facial hair and hair. Hair greys and recedes with age; expressions follow morale.
 > - **Player morale** - wins, losses, injuries, trades and your responses to events make players happier or unhappier, shifting their ratings by up to ±3 in games.
 >
