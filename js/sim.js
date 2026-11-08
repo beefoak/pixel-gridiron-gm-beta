@@ -45,7 +45,7 @@ function teamRatings(L, team) {
   const offIds = ['QB', 'RB', 'WR', 'TE', 'OL'], defIds = ['DE', 'DT', 'LB', 'CB', 'S'];
   const avgOvr = (ids) => { let s = 0, n = 0; for (const ps of ids) for (const p of lu[ps].slice(0, STARTERS[ps])) { s += p.ovr * (ps === 'QB' ? 3 : 1); n += ps === 'QB' ? 3 : 1; } return n ? s / n : 0; };
   const off = avgOvr(offIds), def = avgOvr(defIds);
-  return { off: Math.round(off), def: Math.round(def), ovr: Math.round(off * 0.55 + def * 0.45) };
+  return { off: Math.round(off), def: Math.round(def), ovr: Math.round(off * 0.55 + def * 0.45), raw: off * 0.55 + def * 0.45 };
 }
 
 // Morale shifts every rating a little for the length of the game.

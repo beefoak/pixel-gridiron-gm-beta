@@ -240,7 +240,7 @@ function draftReviewData(L, year) {
 function faSnapshot(L) {
   L.faSnap = {
     year: L.year, roster: L.teams[L.userTeam].roster.slice(), cap: capSpace(L, L.teams[L.userTeam]),
-    ratings: L.teams.map(t => teamRatings(L, t).ovr), log: [],
+    ratings: L.teams.map(t => teamRatings(L, t).ovr), raw: L.teams.map(t => teamRatings(L, t).raw), log: [],
   };
 }
 function faLogSigning(L, team, p, sal, yrs) {
@@ -252,7 +252,10 @@ function buildFAReview(L) {
   const u = L.teams[L.userTeam];
   const now = L.teams.map(t => teamRatings(L, t).ovr);
   const lgDelta = now.reduce((s, v, i) => s + v - S.ratings[i], 0) / now.length;
-  const myDelta = now[u.id] - S.ratings[u.id];
+  // Grade on unrounded ratings: a rounded team OVR barely moves, which left almost every offseason at the same grade.
+  const raw = L.teams.map(t => teamRatings(L, t).raw), base = S.raw || S.ratings;
+  const lgRaw = raw.reduce((s, v, i) => s + v - base[i], 0) / raw.length;
+  const myRaw = raw[u.id] - base[u.id];
   const signed = S.log.filter(x => x.tid === u.id);
   const cur = new Set(u.roster);
   const lost = S.roster.filter(id => !cur.has(id)).map(id => {
@@ -261,8 +264,10 @@ function buildFAReview(L) {
     const sig = S.log.find(x => x.pid === id);
     return { pid: id, name: fullName(p), pos: p.pos, ovr: p.ovr, age: p.age, dest, sal: sig ? sig.sal : null };
   }).filter(Boolean).sort((a, b) => b.ovr - a.ovr);
-  const bargain = signed.length ? signed.reduce((s, x) => s + Math.log2(Math.max(0.5, x.mkt) / Math.max(0.5, x.sal)), 0) / signed.length : 0;
-  const score = (myDelta - lgDelta) * 0.8 + bargain * 0.6;
+  // Value of the money spent, weighted by salary so a $40M overpay matters more than a minimum deal.
+  const wSum = signed.reduce((s, x) => s + Math.max(0.5, x.sal), 0);
+  const bargain = signed.length ? signed.reduce((s, x) => s + Math.max(0.5, x.sal) * clamp(Math.log2(Math.max(0.5, x.mkt) / Math.max(0.5, x.sal)), -1.5, 1.5), 0) / wSum : 0;
+  const score = (myRaw - lgRaw) * 0.9 + bargain * 1.2;
   const steps = [[1.6, 'A+'], [1, 'A'], [0.6, 'A-'], [0.3, 'B+'], [0, 'B'], [-0.3, 'B-'], [-0.6, 'C+'], [-1, 'C'], [-1.6, 'D'], [-1e9, 'F']];
   const grade = steps.find(g => score >= g[0])[1];
   const top = S.log.slice().sort((a, b) => b.sal - a.sal).slice(0, 10);
@@ -270,7 +275,7 @@ function buildFAReview(L) {
     year: S.year, grade, before: S.ratings[u.id], after: now[u.id], lgDelta: Math.round(lgDelta * 10) / 10,
     capBefore: S.cap, capAfter: capSpace(L, u), signed, lost, top,
     rankBefore: 1 + S.ratings.filter((v, i) => v > S.ratings[u.id] && i !== u.id).length,
-    rankAfter: 1 + now.filter((v, i) => v > now[u.id] && i !== u.id).length,
+    rankAfter: 1 + now.filter((v, i) => v > now[u.id] && i !== u.id).length, score: Math.round(score * 100) / 100,
   };
   L.faReviews = L.faReviews || {}; L.faReviews[S.year] = R2;
   L.faSnap = null;

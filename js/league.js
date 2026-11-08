@@ -622,10 +622,22 @@ function teamNeeds(L, team, lgAvg) {
 }
 
 // Board value blended with team fit. Prospects use scouted ratings (sOvr / sPot).
-// ai=true: AI front offices use their own (good, slightly noisy) scouting instead of your estimates.
+// ai = team id: AI front offices use their own scouting instead of your estimates. Each team has a fixed
+// read on each prospect (about as good as one round of your scouting), and some front offices scout better than others.
+function hashGauss(a, b, c) {
+  let h = (Math.imul(a + 1, 0x9E3779B1) ^ Math.imul(b + 7, 0x85EBCA77) ^ Math.imul(c + 13, 0xC2B2AE3D)) >>> 0;
+  const u = () => { h = Math.imul(h ^ (h >>> 15), 0x2C1B3C6D) >>> 0; h = Math.imul(h ^ (h >>> 12), 0x297A2D39) >>> 0; h ^= h >>> 15; return ((h >>> 0) + 0.5) / 4294967296; };
+  return Math.sqrt(-2 * Math.log(u())) * Math.cos(2 * Math.PI * u());
+}
+function aiScoutSkill(tid) { return 0.75 + 0.5 * ((Math.imul(tid + 3, 0x9E3779B1) >>> 0) % 1000) / 1000; }
+function aiScoutView(tid, p) {
+  const k = aiScoutSkill(tid);
+  return { o: p.ovr + hashGauss(tid, p.id, 1) * 5 * k, pt: p.pot + hashGauss(tid, p.id, 2) * 7 * k };
+}
 function draftFit(p, needs, ai) {
   const nd = needs[p.pos], pv = POS_VALUE[p.pos];
-  const o = ai ? p.ovr + R.gauss(0, 2) : p.sOvr, pt = ai ? p.pot + R.gauss(0, 2.5) : p.sPot;
+  const av = ai !== undefined && ai !== false ? aiScoutView(ai === true ? 0 : ai, p) : null;
+  const o = av ? av.o : p.sOvr, pt = av ? av.pt : p.sPot;
   const base = pt * 0.55 + o * 0.45;
   let v = base + (pv - 1) * 3 + nd.need * 0.5 * pv;
   const startsNow = o > nd.worstStarter;
@@ -660,7 +672,7 @@ function aiDraftPick(L) {
   let best = null, bv = -1e9;
   for (const pid of D.pool.slice(0, 120)) {
     const p = L.players[pid];
-    const v = draftFit(p, needs, true).v + R.gauss(0, 2);
+    const v = draftFit(p, needs, team.id).v + R.gauss(0, 1.5);
     if (v > bv) { bv = v; best = p; }
   }
   draftPlayer(L, best.id);
